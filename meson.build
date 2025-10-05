@@ -218,6 +218,7 @@ if is_linux
         'src/modules/memory/linux.cpp',
         'src/modules/gpu.cpp',
         'src/modules/power_profiles_daemon.cpp',
+        'src/modules/rapl.cpp',
         'src/modules/systemd_failed_units.cpp',
     )
     man_files += files(
@@ -229,6 +230,7 @@ if is_linux
         'man/waybar-gpu.5.scd',
         'man/waybar-systemd-failed-units.5.scd',
         'man/waybar-power-profiles-daemon.5.scd',
+        'man/waybar-rapl.5.scd',
     )
 elif is_dragonfly or is_freebsd or is_netbsd or is_openbsd
     add_project_arguments('-DHAVE_CPU_BSD', language: 'cpp')

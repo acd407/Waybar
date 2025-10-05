@@ -1,4 +1,5 @@
 #include "modules/cpu_usage.hpp"
+#include "util/format.hpp"
 
 // In the 80000 version of fmt library authors decided to optimize imports
 // and moved declarations required for fmt::dynamic_format_arg_store in new
@@ -24,7 +25,7 @@ auto waybar::modules::CpuUsage::update() -> void {
     label_.set_tooltip_text(tooltip);
   }
   auto format = format_;
-  auto total_usage = cpu_usage.empty() ? 0 : cpu_usage[0];
+  auto total_usage = cpu_usage.empty() ? 0.0f : cpu_usage[0];
   auto state = getState(total_usage);
   if (!state.empty() && config_["format-" + state].isString()) {
     format = config_["format-" + state].asString();
@@ -36,12 +37,12 @@ auto waybar::modules::CpuUsage::update() -> void {
     event_box_.show();
     auto icons = std::vector<std::string>{state};
     fmt::dynamic_format_arg_store<fmt::format_context> store;
-    store.push_back(fmt::arg("usage", total_usage));
+    store.push_back(fmt::arg("usage", float_format4w(total_usage)));
     store.push_back(fmt::arg("icon", getIcon(total_usage, icons)));
     for (size_t i = 1; i < cpu_usage.size(); ++i) {
       auto core_i = i - 1;
       auto core_format = fmt::format("usage{}", core_i);
-      store.push_back(fmt::arg(core_format.c_str(), cpu_usage[i]));
+      store.push_back(fmt::arg(core_format.c_str(), float_format4w(cpu_usage[i])));
       auto icon_format = fmt::format("icon{}", core_i);
       store.push_back(fmt::arg(icon_format.c_str(), getIcon(cpu_usage[i], icons)));
     }
@@ -52,7 +53,7 @@ auto waybar::modules::CpuUsage::update() -> void {
   ALabel::update();
 }
 
-std::tuple<std::vector<uint16_t>, std::string> waybar::modules::CpuUsage::getCpuUsage(
+std::tuple<std::vector<float>, std::string> waybar::modules::CpuUsage::getCpuUsage(
     std::vector<std::tuple<size_t, size_t>>& prev_times) {
   if (prev_times.empty()) {
     prev_times = CpuUsage::parseCpuinfo();
@@ -60,7 +61,7 @@ std::tuple<std::vector<uint16_t>, std::string> waybar::modules::CpuUsage::getCpu
   }
   std::vector<std::tuple<size_t, size_t>> curr_times = CpuUsage::parseCpuinfo();
   std::string tooltip;
-  std::vector<uint16_t> usage;
+  std::vector<float> usage;
 
   if (curr_times.size() != prev_times.size()) {
     // The number of CPUs has changed, eg. due to CPU hotplug
@@ -71,12 +72,12 @@ std::tuple<std::vector<uint16_t>, std::string> waybar::modules::CpuUsage::getCpu
       auto [prev_idle, prev_total] = prev_times[0];
       const float delta_idle = curr_idle - prev_idle;
       const float delta_total = curr_total - prev_total;
-      uint16_t tmp = 100 * (1 - delta_idle / delta_total);
-      tooltip = fmt::format("Total: {}%\nCores: (pending)", tmp);
+      float tmp = 100.0f * (1.0f - delta_idle / delta_total);
+      tooltip = fmt::format("Total: {:.1f}%\nCores: (pending)", tmp);
       usage.push_back(tmp);
     } else {
       tooltip = "(pending)";
-      usage.push_back(0);
+      usage.push_back(0.0f);
     }
     prev_times = curr_times;
     return {usage, tooltip};
@@ -88,16 +89,16 @@ std::tuple<std::vector<uint16_t>, std::string> waybar::modules::CpuUsage::getCpu
     if (i > 0 && (curr_total == 0 || prev_total == 0)) {
       // This CPU is offline
       tooltip = tooltip + fmt::format("\nCore{}: offline", i - 1);
-      usage.push_back(0);
+      usage.push_back(0.0f);
       continue;
     }
     const float delta_idle = curr_idle - prev_idle;
     const float delta_total = curr_total - prev_total;
-    uint16_t tmp = 100 * (1 - delta_idle / delta_total);
+    float tmp = 100.0f * (1.0f - delta_idle / delta_total);
     if (i == 0) {
-      tooltip = fmt::format("Total: {}%", tmp);
+      tooltip = fmt::format("Total: {:.1f}%", tmp);
     } else {
-      tooltip = tooltip + fmt::format("\nCore{}: {}%", i - 1, tmp);
+      tooltip = tooltip + fmt::format("\nCore{}: {:.1f}%", i - 1, tmp);
     }
     usage.push_back(tmp);
   }

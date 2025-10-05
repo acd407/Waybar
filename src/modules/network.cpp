@@ -620,38 +620,58 @@ int waybar::modules::Network::handleEvents(struct nl_msg *msg, void *data) {
           case IFA_LOCAL:
             char ipaddr[INET6_ADDRSTRLEN];
             if (!is_del_event) {
+              std::string new_ipaddr, new_ipaddr6;
+              int new_cidr = 0, new_cidr6 = 0;
               if ((net->addr_pref_ == ip_addr_pref::IPV4 ||
                    net->addr_pref_ == ip_addr_pref::IPV4_6) &&
-                  net->cidr_ == 0 && ifa->ifa_family == AF_INET) {
-                net->ipaddr_ =
-                    inet_ntop(ifa->ifa_family, RTA_DATA(ifa_rta), ipaddr, sizeof(ipaddr));
-                net->cidr_ = ifa->ifa_prefixlen;
+                  ifa->ifa_family == AF_INET) {
+                new_ipaddr = inet_ntop(ifa->ifa_family, RTA_DATA(ifa_rta), ipaddr, sizeof(ipaddr));
+                new_cidr = ifa->ifa_prefixlen;
               } else if ((net->addr_pref_ == ip_addr_pref::IPV6 ||
                           net->addr_pref_ == ip_addr_pref::IPV4_6) &&
-                         net->cidr6_ == 0 && ifa->ifa_family == AF_INET6) {
-                net->ipaddr6_ =
-                    inet_ntop(ifa->ifa_family, RTA_DATA(ifa_rta), ipaddr, sizeof(ipaddr));
-                net->cidr6_ = ifa->ifa_prefixlen;
+                         ifa->ifa_family == AF_INET6) {
+                new_ipaddr6 = inet_ntop(ifa->ifa_family, RTA_DATA(ifa_rta), ipaddr, sizeof(ipaddr));
+                new_cidr6 = ifa->ifa_prefixlen;
               }
 
-              switch (ifa->ifa_family) {
-                case AF_INET: {
-                  struct in_addr netmask;
-                  netmask.s_addr = htonl(~0 << (32 - ifa->ifa_prefixlen));
-                  net->netmask_ = inet_ntop(ifa->ifa_family, &netmask, ipaddr, sizeof(ipaddr));
-                }
-                case AF_INET6: {
-                  struct in6_addr netmask6;
-                  for (int i = 0; i < 16; i++) {
-                    int v = (i + 1) * 8 - ifa->ifa_prefixlen;
-                    if (v < 0) v = 0;
-                    if (v > 8) v = 8;
-                    netmask6.s6_addr[i] = ~0 << v;
-                  }
-                  net->netmask6_ = inet_ntop(ifa->ifa_family, &netmask6, ipaddr, sizeof(ipaddr));
-                }
+              // 只有当地址真正发生变化时才更新状态
+              bool addr_changed = false;
+              if (!new_ipaddr.empty() && (net->ipaddr_ != new_ipaddr || net->cidr_ != new_cidr)) {
+                net->ipaddr_ = new_ipaddr;
+                net->cidr_ = new_cidr;
+                addr_changed = true;
               }
-              spdlog::debug("network: {}, new addr {}/{}", net->ifname_, net->ipaddr_, net->cidr_);
+              if (!new_ipaddr6.empty() &&
+                  (net->ipaddr6_ != new_ipaddr6 || net->cidr6_ != new_cidr6)) {
+                net->ipaddr6_ = new_ipaddr6;
+                net->cidr6_ = new_cidr6;
+                addr_changed = true;
+              }
+
+              if (addr_changed) {
+                switch (ifa->ifa_family) {
+                  case AF_INET: {
+                    struct in_addr netmask;
+                    netmask.s_addr = htonl(~0 << (32 - ifa->ifa_prefixlen));
+                    net->netmask_ = inet_ntop(ifa->ifa_family, &netmask, ipaddr, sizeof(ipaddr));
+                    break;
+                  }
+                  case AF_INET6: {
+                    struct in6_addr netmask6;
+                    for (int i = 0; i < 16; i++) {
+                      int v = (i + 1) * 8 - ifa->ifa_prefixlen;
+                      if (v < 0) v = 0;
+                      if (v > 8) v = 8;
+                      netmask6.s6_addr[i] = ~0 << v;
+                    }
+                    net->netmask6_ = inet_ntop(ifa->ifa_family, &netmask6, ipaddr, sizeof(ipaddr));
+                    break;
+                  }
+                }
+                spdlog::debug("network: {}, new addr {}/{}", net->ifname_,
+                              ifa->ifa_family == AF_INET ? net->ipaddr_ : net->ipaddr6_,
+                              ifa->ifa_family == AF_INET ? net->cidr_ : net->cidr6_);
+              }
             } else {
               net->ipaddr_.clear();
               net->ipaddr6_.clear();
@@ -663,7 +683,9 @@ int waybar::modules::Network::handleEvents(struct nl_msg *msg, void *data) {
                             inet_ntop(ifa->ifa_family, RTA_DATA(ifa_rta), ipaddr, sizeof(ipaddr)),
                             ifa->ifa_prefixlen);
             }
-            net->dp.emit();
+            // 地址变更不触发更新，因为定时器已经每秒更新一次
+            // spdlog::debug("network: update triggered by address change");
+            // net->dp.emit();
             break;
         }
       }

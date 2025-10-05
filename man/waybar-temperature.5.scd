@@ -31,26 +31,21 @@ Addressed by *temperature*
 	typeof: string ++
 	The temperature filename of your *hwmon-path-abs*, e.g. *temp1_input*
 
-*warning-threshold*: ++
-	typeof: integer ++
-	The threshold before it is considered warning (Celsius).
-
-*critical-threshold*: ++
-	typeof: integer ++
-	The threshold before it is considered critical (Celsius).
+*states*: ++
+	typeof: object ++
+	Defines a set of states for the temperature module. Each state consists of a name and a threshold value. The module will apply the CSS class corresponding to the current state. For example:
+	```
+	"states": {
+		"warning": 60,
+		"critical": 80
+	}
+	```
+	This will apply the CSS class *warning* when the temperature reaches 60°C and *critical* when it reaches 80°C.
 
 *interval*: ++
 	typeof: integer or float ++
 	default: 10 ++
 	The interval in which the information gets polled.
-
-*format-warning*: ++
-	typeof: string ++
-	The format to use when temperature is considered warning
-
-*format-critical*: ++
-	typeof: string ++
-	The format to use when temperature is considered critical
 
 *format*: ++
 	typeof: string  ++
@@ -59,7 +54,7 @@ Addressed by *temperature*
 
 *format-icons*: ++
 	typeof: array ++
-	Based on the current temperature (Celsius) and *critical-threshold* if available, the corresponding icon gets selected. The order is *low* to *high*.
+	Based on the current temperature (Celsius) and state thresholds if available, the corresponding icon gets selected. The order is *low* to *high*.
 
 *tooltip-format*: ++
 	typeof: string  ++

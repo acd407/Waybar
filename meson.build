@@ -204,6 +204,7 @@ if is_linux
     add_project_arguments('-DHAVE_CPU_LINUX', language: 'cpp')
     add_project_arguments('-DHAVE_MEMORY_LINUX', language: 'cpp')
     add_project_arguments('-DHAVE_SYSTEMD_MONITOR', language: 'cpp')
+    add_project_arguments('-DHAVE_GPU_LINUX', language: 'cpp')
     src_files += files(
         'src/modules/battery.cpp',
         'src/modules/bluetooth.cpp',
@@ -215,6 +216,7 @@ if is_linux
         'src/modules/cpu_usage/linux.cpp',
         'src/modules/memory/common.cpp',
         'src/modules/memory/linux.cpp',
+        'src/modules/gpu.cpp',
         'src/modules/power_profiles_daemon.cpp',
         'src/modules/systemd_failed_units.cpp',
     )
@@ -224,6 +226,7 @@ if is_linux
         'man/waybar-cffi.5.scd',
         'man/waybar-cpu.5.scd',
         'man/waybar-memory.5.scd',
+        'man/waybar-gpu.5.scd',
         'man/waybar-systemd-failed-units.5.scd',
         'man/waybar-power-profiles-daemon.5.scd',
     )

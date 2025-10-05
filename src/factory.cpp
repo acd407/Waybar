@@ -59,6 +59,9 @@
 #if defined(HAVE_MEMORY_LINUX) || defined(HAVE_MEMORY_BSD)
 #include "modules/memory.hpp"
 #endif
+#ifdef HAVE_GPU_LINUX
+#include "modules/gpu.hpp"
+#endif
 #include "modules/disk.hpp"
 #ifdef HAVE_DBUSMENU
 #include "modules/sni/tray.hpp"
@@ -247,6 +250,11 @@ waybar::AModule* waybar::Factory::makeModule(const std::string& name,
 #if defined(HAVE_MEMORY_LINUX) || defined(HAVE_MEMORY_BSD)
     if (ref == "memory") {
       return new waybar::modules::Memory(id, config_[name]);
+    }
+#endif
+#ifdef HAVE_GPU_LINUX
+    if (ref == "gpu") {
+      return new waybar::modules::Gpu(id, config_[name]);
     }
 #endif
 #if defined(HAVE_CPU_LINUX) || defined(HAVE_CPU_BSD)
